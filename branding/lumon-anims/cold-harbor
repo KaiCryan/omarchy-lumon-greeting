@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""File: Cold Harbor. The completion percentage climbs -- stalling, lurching --
+to one hundred. Then a name."""
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, bar, center, fg, nap, run, term_size, write,
+)
+
+LABELS = ["reticulating", "binning tempers", "verifying", "cross-referencing",
+          "sealing", "consolidating"]
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        write("  FILE:  COLD HARBOR   " + bar(1, 30) + "   100.0%\n\n  COMPLETE\n")
+        return
+
+    mid = lines // 2
+    bw = min(cols - 12, 54)
+    rnd = random.Random()
+    write("\033[2J\033[?25l")
+
+    def paint_screen(pct, label, flash=False):
+        write(f"\033[{mid - 3};1H\033[2K"
+              + center(fg(DIM) + "L U M O N   /   MACRODATA REFINEMENT" + RESET, cols, 35))
+        write(f"\033[{mid - 1};1H\033[2K"
+              + center(fg(HOT) + "FILE:  COLD HARBOR" + RESET, cols, 18))
+        fillc = HOT if flash else COLOR
+        b = fg(DIM) + "▕" + fg(fillc) + bar(pct / 100, bw) + fg(DIM) + "▏" + RESET
+        write(f"\033[{mid + 1};1H\033[2K" + center(b, cols, bw + 2))
+        tail = f"{pct:5.1f}%" + "    " + label
+        write(f"\033[{mid + 2};1H\033[2K"
+              + center(fg(HOT) + f"{pct:5.1f}%" + RESET + fg(DIM) + f"    {label}" + RESET,
+                       cols, len(tail)))
+
+    pct = 0.0
+    while pct < 100.0:
+        pct = min(100.0, pct + rnd.choice([0.5, 1.2, 2.5, 4.0, 0.0, 0.0, 6.5]))
+        paint_screen(pct, rnd.choice(LABELS))
+        nap(rnd.choice([0.03, 0.05, 0.09, 0.02]))
+        if rnd.random() < 0.05:
+            nap(0.5)
+
+    for _ in range(4):
+        paint_screen(100.0, "COMPLETE", flash=True)
+        nap(0.12)
+        paint_screen(100.0, "COMPLETE", flash=False)
+        nap(0.12)
+
+    write("\033[2J")
+    nap(0.5)
+    name = "G E M M A"
+    for i in range(len(name) + 1):
+        write(f"\033[{mid};1H\033[2K" + center(fg(HOT) + name[:i] + RESET, cols, i))
+        nap(0.13)
+    nap(1.4)
+    write("\033[2J\033[H\n")
+
+
+run(main)

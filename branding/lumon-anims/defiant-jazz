@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Defiant jazz: the numbers keep time, and the levels climb."""
+import math
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+BLOCKS = " ▁▂▃▄▅▆▇█"
+
+
+def main():
+    cols, lines = term_size()
+    rnd = random.Random()
+    if not TTY:
+        write("  ▂▅█▃▇▁▆▄▅▂  D E F I A N T   J A Z Z\n")
+        return
+
+    w = cols - 1
+    gh = max(3, lines - 7)
+    grid = [[rnd.randrange(10) for _ in range(w)] for _ in range(gh)]
+    nbars = max(6, min(w // 3, 36))
+    levels = [rnd.random() for _ in range(nbars)]
+    eqrows = 4
+
+    write("\033[2J\033[?25l")
+    for b in range(26):
+        hit = (b % 2 == 0)
+        if rnd.random() < 0.18:
+            hit = not hit
+        for i in range(nbars):
+            target = (0.55 + 0.45 * math.sin(b * 0.6 + i * 0.4)) if hit else rnd.random() * 0.35
+            levels[i] += (target - levels[i]) * 0.6
+
+        out = ["\033[H"]
+        base = COLOR if hit else DIM
+        for y in range(gh):
+            row = []
+            for x in range(w):
+                if hit and rnd.random() < 0.03:
+                    grid[y][x] = rnd.randrange(10)
+                hot = hit and rnd.random() < 0.02
+                row.append(fg(HOT if hot else base) + str(grid[y][x]) + RESET)
+            out.append("".join(row) + "\033[K\r\n")
+        out.append("\033[K\r\n")
+
+        for r in range(eqrows, 0, -1):
+            seg = []
+            for lv in levels:
+                filled = lv * eqrows
+                if filled >= r:
+                    seg.append(fg(COLOR) + "█" + RESET)
+                elif filled >= r - 1:
+                    seg.append(fg(COLOR) + BLOCKS[max(0, min(8, int((filled - r + 1) * 8)))] + RESET)
+                else:
+                    seg.append(" ")
+            out.append("  " + "  ".join(seg) + "\033[K\r\n")
+        out.append("\033[K\r\n")
+        out.append(center(fg(HOT if hit else DIM) + "D E F I A N T   J A Z Z" + RESET,
+                          cols, 23) + "\033[K\r\n")
+        out.append("\033[J")
+        write("".join(out))
+        nap(0.17 if hit else 0.15)
+
+    write("\033[2J\033[H\n")
+
+
+run(main)

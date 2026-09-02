@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""A slow pass through the Perpetuity Wing: the Eagan line, one placard at a
+time, drifting by like a gallery you are being walked through."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+EAGANS = [
+    ("KIER EAGAN", "1841 – 1939", "Founder.  \"Let not weakness live in your veins.\""),
+    ("IMBROSE EAGAN", "1907 – 1953", "Second of the line. Kept the flame lit."),
+    ("MYRTLE EAGAN", "1886 – 1960", "\"A cold world requires a warm ambition.\""),
+    ("BAIRD EAGAN", "1902 – 1979", "Steward of the northern works."),
+    ("GERHARDT EAGAN", "1898 – 1965", "\"Industry is tenderness made visible.\""),
+    ("PHILLIP EAGAN", "1932 – 1990", "Bridged the old ways and the new."),
+    ("LEONORA EAGAN", "1944 – 2003", "\"The remembered are never truly severed.\""),
+    ("JAME EAGAN", "1960 –", "The living hand. Keeps Kier close."),
+]
+
+BUST = [
+    "  .-\"\"\"\"-.  ",
+    " /  _  _  \\ ",
+    " |  o  o  | ",
+    " \\   --   / ",
+    "  '.____.'  ",
+    "  _|    |_  ",
+]
+
+
+def build(width):
+    buf = ["", ""]
+    for name, dates, epithet in EAGANS:
+        side = [
+            "",
+            fg(HOT) + name + RESET,
+            fg(COLOR) + dates + RESET,
+            "",
+            fg(DIM) + epithet[:width - 16] + RESET,
+            "",
+        ]
+        for i, art in enumerate(BUST):
+            buf.append("   " + fg(COLOR) + art + RESET + "   " + (side[i] if i < len(side) else ""))
+        buf.append("")
+        buf.append("   " + fg(DIM) + "─" * min(width - 6, 54) + RESET)
+        buf.append("")
+    return buf
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        for name, dates, epithet in EAGANS[:4]:
+            write(f"  {name}   {dates}   {epithet}\n")
+        return
+
+    h = lines - 2
+    buf = build(cols)
+    write("\033[2J\033[?25l")
+    for off in range(-2, len(buf) + h):
+        out = ["\033[H"]
+        out.append(center(fg(DIM) + "T H E   P E R P E T U I T Y   W I N G" + RESET,
+                          cols, 37) + "\033[K\r\n")
+        out.append("\033[K\r\n")
+        for r in range(h):
+            idx = off + r
+            line = buf[idx] if 0 <= idx < len(buf) else ""
+            out.append(line + "\033[K\r\n")
+        out.append("\033[J")
+        write("".join(out))
+        nap(0.055)
+
+    write("\033[2J\033[H\n")
+
+
+run(main)

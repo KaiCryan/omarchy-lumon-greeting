@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""A random Severance employee's personnel file prints to the screen: the
+portrait develops under a scanning bar, then the ID card fills in beside it.
+
+Portraits are pre-rendered by ~/lumon-assets/characters/build.sh into
+./portraits/<id>.txt (46-col ASCII line portrait) with ./portraits/roster.tsv
+for the text."""
+import os
+import random
+import sys
+import textwrap
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, paint, run, term_size, write,
+)
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PDIR = os.path.join(HERE, "portraits")
+
+PW = 46          # portrait width (matches build.sh --cols 46)
+TOP = 2          # first screen row of the portrait
+LEFT = 3         # first screen column
+
+
+def roster():
+    out = []
+    try:
+        with open(os.path.join(PDIR, "roster.tsv"), encoding="utf-8") as fh:
+            for line in fh:
+                p = line.rstrip("\n").split("\t")
+                if len(p) == 5:
+                    out.append(p)  # id, name, role, dept, quote
+    except OSError:
+        pass
+    return out
+
+
+def portrait_lines(cid):
+    try:
+        with open(os.path.join(PDIR, cid + ".txt"), encoding="utf-8") as fh:
+            return fh.read().rstrip("\n").split("\n"), False
+    except OSError:
+        return [], False
+
+
+def at(r, c, s):
+    write(f"\033[{r};{c}H{s}")
+
+
+def badge_id(name):
+    h = 0
+    for ch in name:
+        h = (h * 131 + ord(ch)) & 0xFFFFFF
+    return f"{h % 90 + 10:02d}-{h // 97 % 900 + 100:03d}-{h // 9973 % 90 + 10:02d}"
+
+
+def main():
+    cols, lines = term_size()
+    people = roster()
+    if not people:
+        write(paint("  LUMON personnel file unavailable.", DIM) + "\n")
+        return
+    cid, name, role, dept, quote = random.choice(people)
+    art, _ = portrait_lines(cid)
+    while art and not art[-1].strip():
+        art.pop()
+    # keep the portrait inside the window on short terminals: drop rows evenly
+    budget = max(6, lines - 4)
+    if TTY and len(art) > budget:
+        keep = budget
+        art = [art[round(i * (len(art) - 1) / (keep - 1))] for i in range(keep)]
+    ah = len(art)
+
+    if not TTY:
+        write(paint("LUMON INDUSTRIES  ·  PERSONNEL FILE", DIM) + "\n\n")
+        write(fg(COLOR) + "\n".join(art[: min(ah, 16)]) + RESET + "\n\n")
+        write(paint(f"  {name.upper()}", HOT) + "\n")
+        write(paint(f"  {role} — {dept}", COLOR) + "\n")
+        write(paint(f"  “{quote}”", DIM) + "\n")
+        return
+
+    narrow = cols < LEFT + PW + 4 + 22   # not even a slim card fits beside
+    write("\033[2J\033[H")
+    at(TOP - 1, LEFT, paint("LUMON INDUSTRIES  ·  PERSONNEL FILE", DIM))
+
+    # frame around the portrait
+    box = fg(DIM)
+    at(TOP - 0 + ah, LEFT, "")  # ensure room
+    for i in range(ah):
+        at(TOP + i, LEFT - 1, box + "│" + RESET)
+        at(TOP + i, LEFT + PW, box + "│" + RESET)
+
+    # develop the portrait under a downward scan bar
+    for i in range(ah + 1):
+        if i < ah:
+            at(TOP + i, LEFT, fg(HOT) + "█" * PW + RESET)
+            nap(0.028)
+        if i > 0:
+            at(TOP + i - 1, LEFT, fg(COLOR) + art[i - 1].ljust(PW) + RESET)
+    nap(0.25)
+
+    # the ID card, to the right (or below, if the terminal is narrow)
+    cr = TOP + ah + 2 if narrow else TOP + 1
+    cc = LEFT if narrow else LEFT + PW + 5
+    cw = min(32, max(18, cols - cc - 1))
+    rows = [
+        paint(name.upper(), HOT, bold=True),
+        fg(DIM) + "─" * cw + RESET,
+        paint("POSITION", DIM), "  " + paint(role, COLOR),
+        "",
+        paint("DEPARTMENT", DIM), "  " + paint(dept, COLOR),
+        "",
+        paint("FILE", DIM), "  " + paint(badge_id(name), COLOR),
+        "",
+        fg(DIM) + "─" * cw + RESET,
+    ]
+    rows += [fg(COLOR) + ln + RESET
+             for ln in textwrap.wrap("“" + quote + "”", cw)]
+    rows += ["", paint("STATUS: SEVERED", DIM),
+             paint("UNITED IN SEVERANCE", DIM)]
+    for k, line in enumerate(rows):
+        at(cr + k, cc, line + "\033[K")
+        nap(0.05)
+    nap(float(os.environ.get("LUMON_HOLD", "1.2")))
+
+    # settle into flowing text so the briefing below starts clean
+    write(RESET + "\033[2J\033[3J\033[H\n")
+    write(center(paint(f"— {name}  ·  {dept} —", COLOR), cols) + "\n")
+    write(center(paint(f"“{quote}”", DIM), cols) + "\n\n")
+    nap(0.5)
+
+
+run(main)

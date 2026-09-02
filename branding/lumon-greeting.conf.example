@@ -1,0 +1,27 @@
+# Lumon terminal greeting -- configuration
+# Sourced as plain bash by ~/.config/omarchy/branding/lumon-greeting.
+# Edit a value, open a new terminal to see it.  Preview all:  lumon-greeting --preview
+
+# Master switch: 1 = on, 0 = off (the fastfetch briefing still runs).
+LUMON_GREETING_ENABLED=1
+
+# Which animation plays on a new terminal:
+#   random             a different one each time            (default)
+#   sequence           cycle through them in order
+#   daily              one animation per calendar day
+#   globe              always this one   (names: lumon-greeting --list)
+#   "globe mdr boot"   random pick from just this set
+LUMON_ANIM="random"
+
+# Playback
+LUMON_ANIM_SPEED="1.0"      # >1 faster, <1 slower
+LUMON_ANIM_MAXTIME="12"      # hard cap in seconds -- safety net, keep it
+LUMON_ANIM_FASTFETCH=1      # 1 = show the fastfetch system briefing afterwards
+
+# Palette  (R;G;B, ANSI truecolor)
+LUMON_ANIM_COLOR="158;204;228"   # primary line work
+LUMON_ANIM_DIM="74;107;128"      # faint / background
+LUMON_ANIM_HOT="242;252;255"     # highlights
+
+# Name shown by the 'boot' and 'elevator' intros (blank = your username)
+LUMON_ANIM_NAME=""

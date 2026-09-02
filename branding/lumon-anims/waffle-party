@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""You have earned the Waffle Party. Confetti falls. A small figure dances."""
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+WAFFLE = [
+    "  ╔═╤═╤═╤═╗  ",
+    "  ╟─┼─┼─┼─╢  ",
+    "  ╟─┼─┼─┼─╢  ",
+    "  ╟─┼─┼─┼─╢  ",
+    "  ╚═╧═╧═╧═╝  ",
+]
+DANCER = [
+    (r" \o/ ", r"  |  ", r" / \ "),
+    (r" _o_ ", r"  |  ", r" / \ "),
+    (r" \o_ ", r"  |\ ", r" / > "),
+    (r" _o/ ", r" /|  ", r" < \ "),
+]
+CONFETTI = ["*", "+", "·", "•", "▪", "✦"]
+HUES = [HOT, COLOR, "255;210;120", "230;150;190", "150;220;180"]
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        write("  ✦ * · ✦   YOU HAVE EARNED: THE WAFFLE PARTY   ✦ · * ✦\n")
+        return
+
+    w, h = cols - 1, lines - 1
+    rnd = random.Random()
+    bits = []
+
+    write("\033[2J\033[?25l")
+    for f in range(70):
+        for _ in range(3):
+            bits.append([rnd.randrange(w), 0.0, rnd.choice(CONFETTI),
+                         rnd.choice(HUES), rnd.uniform(0.4, 1.1)])
+        for b in bits:
+            b[1] += b[4]
+        bits = [b for b in bits if b[1] < h]
+
+        grid = [[None] * w for _ in range(h)]
+        for x, y, ch, hue, _v in bits:
+            iy = int(y)
+            if 0 <= iy < h and 0 <= x < w:
+                grid[iy][x] = (ch, hue)
+
+        wy = h // 2 - 3
+        for i, art in enumerate(WAFFLE):
+            wx = (w - len(art)) // 2
+            for j, c in enumerate(art):
+                if c != " " and 0 <= wy + i < h:
+                    grid[wy + i][wx + j] = (c, "255;210;120")
+
+        pose = DANCER[(f // 3) % len(DANCER)]
+        dy = h // 2 + 3
+        dx = (w - 5) // 2
+        for i, prow in enumerate(pose):
+            for j, c in enumerate(prow):
+                if c != " " and 0 <= dy + i < h:
+                    grid[dy + i][dx + j] = (c, HOT)
+
+        out = ["\033[H"]
+        for y in range(h):
+            row = []
+            for x in range(w):
+                c = grid[y][x]
+                row.append(" " if c is None else fg(c[1]) + c[0] + RESET)
+            out.append("".join(row) + "\033[K\r\n")
+        out.append("\033[J")
+        write("".join(out))
+        nap(0.06)
+
+    write("\033[2J\033[H\n\n")
+    write(center(fg(DIM) + "YOU HAVE EARNED" + RESET, cols, 15) + "\n\n")
+    write(center(fg(HOT) + "T H E   W A F F L E   P A R T Y" + RESET, cols, 31) + "\n\n")
+    write(center(fg(COLOR) + "please enjoy each waffle equally" + RESET, cols, 31) + "\n")
+    nap(1.3)
+
+
+run(main)

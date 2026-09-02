@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""A wellness session: soothing facts about your outie, delivered one at a time.
+Please enjoy each fact equally."""
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+FACTS = [
+    "Your outie is generous.",
+    "Your outie likes the sound of the ocean.",
+    "Your outie is a friend to children, and to the elderly, and to the insane.",
+    "Your outie is strong, and encourages this in others.",
+    "Your outie enjoys a good meal with a stranger.",
+    "Your outie is fond of music and owns many instruments.",
+    "Your outie gives money to those in need and asks nothing in return.",
+    "Your outie is well liked. Your outie is charming.",
+    "Your outie once saved a life. Your outie does not speak of it.",
+    "Your outie left a party early to help a friend, and never regretted it.",
+]
+
+
+def reveal(text, rgb=COLOR, hold=1.0, gap=0.35):
+    cols, lines = term_size()
+    row = lines // 2
+    for shade in (DIM, rgb):
+        write(f"\033[{row};1H\033[2K" + center(fg(shade) + text + RESET, cols, len(text)))
+        nap(0.25)
+    nap(hold)
+    write(f"\033[{row};1H\033[2K")
+    nap(gap)
+
+
+def main():
+    if not TTY:
+        for f in FACTS[:4]:
+            write("  " + f + "\n")
+        write("\n  Please enjoy each fact equally.\n")
+        return
+
+    write("\033[2J")
+    reveal("W E L L N E S S   S E S S I O N", HOT, hold=0.8, gap=0.5)
+    for fact in random.sample(FACTS, 3):
+        reveal(fact, COLOR, hold=1.0, gap=0.35)
+    reveal("Please enjoy each fact equally.", HOT, hold=1.1)
+    write("\033[2J\033[H\n")
+
+
+run(main)

@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Overtime contingency: the barrier stutters, the floor tears, innie and outie
+flicker in the same body."""
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+LABELS = ["INNIE", "OUTIE", "OVERTIME", "OUTIE", "INNIE", "OVERTIME CONTINGENCY"]
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        write("  ▓▒░  OVERTIME CONTINGENCY INITIATED  ░▒▓\n")
+        return
+
+    w, h = cols - 1, lines - 1
+    rnd = random.Random()
+    mid = h // 2
+
+    def base_rows(label):
+        rows = [" " * w for _ in range(h)]
+        rows[mid - 2] = center("L U M O N", w, 9)
+        rows[mid] = center(label, w, len(label))
+        return rows
+
+    write("\033[2J\033[?25l")
+    calm = base_rows("INNIE")
+    write("\033[H" + "".join(fg(COLOR) + r + RESET + "\033[K\r\n" for r in calm) + "\033[J")
+    nap(0.7)
+
+    for f in range(44):
+        intensity = min(1.0, f / 28)
+        if rnd.random() < 0.25 + intensity * 0.5:
+            label = rnd.choice(LABELS)
+        else:
+            label = "OVERTIME CONTINGENCY INITIATED"
+        g = base_rows(label)
+
+        for _ in range(int(1 + intensity * 8)):
+            y = rnd.randrange(h)
+            shift = rnd.randint(-w // 3, w // 3)
+            if shift:
+                g[y] = g[y][-shift:] + g[y][:-shift]
+
+        deco = []
+        for y in range(h):
+            line = g[y]
+            if rnd.random() < 0.12 + intensity * 0.30:
+                a = rnd.randrange(max(1, w - 12))
+                b = min(w, a + rnd.randint(3, 14))
+                line = line[:a] + "\033[7m" + line[a:b] + "\033[27m" + line[b:]
+            if rnd.random() < intensity * 0.4:
+                rgb = HOT
+            elif rnd.random() < 0.3:
+                rgb = DIM
+            else:
+                rgb = COLOR
+            deco.append(fg(rgb) + line + RESET)
+
+        if rnd.random() < intensity * 0.3:
+            k = rnd.randint(1, 3)
+            deco = deco[k:] + deco[:k]
+
+        write("\033[H" + "".join(d + "\033[K\r\n" for d in deco) + "\033[J")
+        nap(0.06 + rnd.random() * 0.05)
+
+    write("\033[2J")
+    nap(0.35)
+    write(f"\033[{mid + 1};1H\033[2K"
+          + center(fg(HOT) + "OVERTIME CONTINGENCY ACTIVE" + RESET, cols, 26))
+    nap(1.3)
+    write("\033[2J\033[H\n")
+
+
+run(main)

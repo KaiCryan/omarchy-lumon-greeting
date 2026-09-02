@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""The endless corridor of the severed floor in one-point perspective. You walk,
+and the door never arrives."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+RINGS = 7
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        write("  ┌────────────┐\n  │  ┌──────┐  │\n  │  │  ┌┐  │  │\n"
+              "  │  │  └┘  │  │\n  │  └──────┘  │\n  └────────────┘\n"
+              "        MACRODATA REFINEMENT\n")
+        return
+
+    w, h = cols - 1, lines - 1
+    cx, cy = w / 2, h / 2
+    total = 66
+
+    write("\033[2J\033[?25l")
+    for f in range(total):
+        cell = [[None] * w for _ in range(h)]
+
+        for t in range(80):
+            tt = t / 80
+            for sx, sy in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
+                x, y = int(sx + (cx - sx) * tt), int(sy + (cy - sy) * tt)
+                if 0 <= y < h and 0 <= x < w and cell[y][x] is None:
+                    cell[y][x] = ("·", DIM)
+
+        for k in range(RINGS):
+            d = ((k / RINGS) + (f / total) * 2.0) % 1.0
+            scale = d ** 2.0
+            hw = max(1, int(scale * (cx - 1)))
+            hh = max(1, int(scale * (cy - 1)))
+            rgb = HOT if d > 0.82 else COLOR if d > 0.45 else DIM
+            x0, x1 = int(cx - hw), int(cx + hw)
+            y0, y1 = int(cy - hh), int(cy + hh)
+            for x in range(max(0, x0), min(w, x1 + 1)):
+                for y in (y0, y1):
+                    if 0 <= y < h:
+                        cell[y][x] = ("─", rgb)
+            for y in range(max(0, y0), min(h, y1 + 1)):
+                for x in (x0, x1):
+                    if 0 <= x < w:
+                        cell[y][x] = ("│", rgb)
+            for x, y, ch in ((x0, y0, "┌"), (x1, y0, "┐"), (x0, y1, "└"), (x1, y1, "┘")):
+                if 0 <= y < h and 0 <= x < w:
+                    cell[y][x] = (ch, rgb)
+
+        out = ["\033[H"]
+        for y in range(h):
+            row = []
+            for x in range(w):
+                c = cell[y][x]
+                row.append(" " if c is None else fg(c[1]) + c[0] + RESET)
+            out.append("".join(row) + "\033[K\r\n")
+        out.append("\033[J")
+        write("".join(out))
+        nap(0.055)
+
+    write("\033[2J")
+    nap(0.3)
+    msg = "MACRODATA REFINEMENT"
+    for i in range(len(msg) + 1):
+        write(f"\033[{h // 2};1H\033[2K" + center(fg(HOT) + msg[:i] + RESET, cols, i))
+        nap(0.05)
+    nap(1.1)
+    write("\033[2J\033[H\n")
+
+
+run(main)

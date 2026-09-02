@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""The break room: the apology statement, read until it is felt. Try it again."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+STATEMENT = (
+    "I am a bad person. I am sorry for the trouble I have caused. "
+    "I am grateful to have this opportunity to right my wrongs, "
+    "and I promise to be better."
+)
+
+
+def wrap(text, width):
+    line, out = "", []
+    for word in text.split():
+        if len(line) + len(word) + 1 > width:
+            out.append(line)
+            line = word
+        else:
+            line = (line + " " + word).strip()
+    if line:
+        out.append(line)
+    return out
+
+
+def main():
+    cols, lines = term_size()
+    width = min(cols - 6, 62)
+    if not TTY:
+        write("  " + STATEMENT + "\n")
+        return
+
+    wrapped = wrap(STATEMENT, width)
+    top = max(3, lines // 2 - len(wrapped) // 2)
+    for attempt in range(1, 4):
+        write("\033[2J")
+        write(f"\033[{top - 2};1H"
+              + center(fg(DIM) + f"BREAK ROOM      attempt {attempt}" + RESET, cols, 26))
+        cps = 40 + attempt * 45
+        for r, ln in enumerate(wrapped):
+            for c in range(1, len(ln) + 1):
+                write(f"\033[{top + r};1H\033[2K"
+                      + center(fg(COLOR) + ln[:c] + RESET, cols, c))
+                nap(1.0 / cps)
+        tag = "Try it again." if attempt < 3 else "...did you mean it?"
+        write(f"\033[{top + len(wrapped) + 2};1H\033[2K"
+              + center(fg(HOT) + tag + RESET, cols, len(tag)))
+        nap(0.9)
+    nap(0.5)
+    write("\033[2J\033[H\n")
+
+
+run(main)

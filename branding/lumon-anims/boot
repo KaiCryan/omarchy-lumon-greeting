@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""A Lumon severed-floor terminal coming up: firmware banner, self-checks with
+spinners, then WELCOME, <employee>."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    BOLD, COLOR, DIM, HOT, NAME, RESET, TTY, center, fg, nap, paint, run, term_size, write,
+)
+
+CHECKS = [
+    ("Kier Systems firmware", "v3.9.1"),
+    ("Severance barrier integrity", "INTACT"),
+    ("Chip handshake (4C-verify)", "OK"),
+    ("Innie memory", "64K OK"),
+    ("Outie memory", "[SEALED]"),
+    (f"Refiner profile: {NAME}", "LOADED"),
+    ("Overtime contingency", "DISARMED"),
+    ("Perpetuity wing uplink", "NOMINAL"),
+    ("Wellness allotment", "3 sessions"),
+    ("Compliance", "NOMINAL"),
+]
+SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧"
+
+
+def typeline(text, rgb=COLOR, cps=110, end="\n"):
+    for ch in text:
+        write(fg(rgb) + ch + RESET)
+        nap((0.4 if ch == " " else 1.0) / cps)
+    write(end)
+
+
+def statusline(label, status):
+    width = min(52, max(30, (term_size()[0] - 12)))
+    base = fg(DIM) + label + " " + "." * max(3, width - len(label)) + " "
+    for i in range(8):
+        write("\r" + base + fg(COLOR) + SPINNER[i % 8] + RESET + "\033[K")
+        nap(0.03)
+    rgb = DIM if status.startswith("[") else HOT if status in ("INTACT", "OK", "LOADED") else COLOR
+    write("\r" + base + paint(status, rgb) + "\033[K\n")
+
+
+def main():
+    cols, _ = term_size()
+    if not TTY:
+        write(paint("LUMON INDUSTRIES", HOT) + "  severed-floor terminal\n")
+        for label, status in CHECKS:
+            write(f"  {label} ... {status}\n")
+        write("\n" + paint(f"WELCOME, {NAME.upper()}", HOT) + "\n")
+        return
+
+    write("\033[2J\033[H\n")
+    write(center(paint("L U M O N   I N D U S T R I E S", HOT, bold=True), cols) + "\n")
+    write(center(paint("SEVERED FLOOR  //  MACRODATA REFINEMENT", DIM), cols) + "\n\n")
+    nap(0.4)
+    for label, status in CHECKS:
+        statusline("  " + label, status)
+        nap(0.06)
+    write("\n")
+    typeline('  "The work is mysterious and important."', DIM)
+    nap(0.5)
+    write("\n")
+    line = f"WELCOME, {NAME.upper()}"
+    for reveal in range(len(line) + 1):
+        write("\r" + center(paint(line[:reveal], HOT, bold=True), cols) + "\033[K")
+        nap(0.04)
+    write("\n")
+    nap(1.0)
+
+
+run(main)

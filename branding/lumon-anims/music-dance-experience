@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""A Music Dance Experience has been allotted. Please enjoy each dance move
+equally."""
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+MOVES = [
+    (r"  \o/  ", r"   |   ", r"  / \  "),
+    (r"  \o   ", r"   |\  ", r"  / >  "),
+    (r"   o/  ", r"  /|   ", r"  < \  "),
+    (r"  <o>  ", r"   |   ", r"  / \  "),
+    (r"  _o_  ", r"  /|\  ", r"  / \  "),
+]
+NOTES = ["♪", "♫", "♩", "♬"]
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        write("  ♪ ♫   MUSIC DANCE EXPERIENCE   ♫ ♪\n  Please enjoy each dance move equally.\n")
+        return
+
+    w, h = cols - 1, lines - 1
+    rnd = random.Random()
+    cx = w // 2
+    figy = h // 2
+    notes = []
+
+    write("\033[2J\033[?25l")
+    line = "Please enjoy each dance move equally."
+    for f in range(64):
+        if f % 3 == 0:
+            notes.append([cx + rnd.randint(-3, 3), float(figy - 1),
+                          rnd.choice(NOTES), rnd.uniform(0.3, 0.7),
+                          rnd.uniform(-0.2, 0.2)])
+        for n in notes:
+            n[1] -= n[3]
+            n[0] += n[4]
+        notes = [n for n in notes if n[1] > 0]
+
+        grid = [[None] * w for _ in range(h)]
+        for x, y, ch, _v, _d in notes:
+            ix, iy = int(x), int(y)
+            if 0 <= iy < h and 0 <= ix < w:
+                grid[iy][ix] = (ch, COLOR)
+
+        pose = MOVES[(f // 4) % len(MOVES)]
+        dx = cx - 3
+        for i, prow in enumerate(pose):
+            for j, c in enumerate(prow):
+                if c != " " and 0 <= figy + i < h:
+                    grid[figy + i][dx + j] = (c, HOT)
+
+        out = ["\033[H"]
+        for y in range(h):
+            if y == h - 2:
+                out.append(center(fg(DIM) + line + RESET, w, len(line)) + "\033[K\r\n")
+                continue
+            if y == 1:
+                out.append(center(fg(HOT) + "M U S I C   D A N C E   E X P E R I E N C E" + RESET,
+                                  w, 43) + "\033[K\r\n")
+                continue
+            row = []
+            for x in range(w):
+                c = grid[y][x]
+                row.append(" " if c is None else fg(c[1]) + c[0] + RESET)
+            out.append("".join(row) + "\033[K\r\n")
+        out.append("\033[J")
+        write("".join(out))
+        nap(0.07)
+
+    write("\033[2J\033[H\n")
+
+
+run(main)

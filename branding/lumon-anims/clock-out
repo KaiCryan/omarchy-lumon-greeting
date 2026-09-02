@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""End of shift: the refiner clocks out. Nothing to report. The floor goes dark."""
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, NAME, RESET, TTY, center, fg, nap, run, term_size, write,
+)
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        write(f"  Refiner {NAME} clocking out.  Nothing to report.\n")
+        return
+
+    rnd = random.Random()
+    write("\033[2J")
+    for y in range(1, lines - 1):
+        write(f"\033[{y};1H" + fg(DIM)
+              + "".join(rnd.choice("0123456789   ") for _ in range(cols - 1)) + RESET)
+    nap(0.7)
+
+    mid = lines // 2
+    for i, (text, rgb) in enumerate((
+        (f"Refiner {NAME} clocking out.", HOT),
+        ("Nothing to report.", COLOR),
+    )):
+        row = mid - 1 + i * 2
+        write(f"\033[{row};1H\033[2K" + center(fg(rgb) + text + RESET, cols, len(text)))
+        nap(1.2)
+    nap(0.6)
+
+    for y in range(1, lines + 1):
+        write(f"\033[{y};1H\033[2K")
+        nap(0.018)
+    write("\033[H")
+    nap(0.4)
+
+
+run(main)

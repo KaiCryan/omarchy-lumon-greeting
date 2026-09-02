@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""Animated Lumon emblem: a wireframe globe spins on its axis and eases to rest,
+then the LUMON wordmark appears. Prints a single static frame when stdout is
+not a terminal."""
+
+import math
+import sys
+import time
+
+# --- geometry -----------------------------------------------------------------
+GW, GH = 44, 21                       # character grid (globe)
+CX, CY = (GW - 1) / 2.0, (GH - 1) / 2.0
+RX, RY = 19.0, 9.3                    # projected radii: a wide Lumon oval
+
+PARALLELS = [0.0, 0.72, -0.72]                     # latitudes (radians)
+# at rest (rot = 0): a centre meridian plus two symmetric curves
+MERIDIAN_LONS = [math.pi / 2, math.pi / 2 + 1.02, math.pi / 2 - 1.02]
+
+COLOR = "\033[38;2;158;204;228m"
+RESET = "\033[0m"
+
+LUMON = r"""
+     ██╗     ██╗   ██╗ ███╗   ███╗  ██████╗  ███╗   ██╗
+     ██║     ██║   ██║ ████╗ ████║ ██╔═══██╗ ████╗  ██║
+     ██║     ██║   ██║ ██╔████╔██║ ██║   ██║ ██╔██╗ ██║
+     ██║     ██║   ██║ ██║╚██╔╝██║ ██║   ██║ ██║╚██╗██║
+     ███████╗╚██████╔╝ ██║ ╚═╝ ██║ ╚██████╔╝ ██║ ╚████║
+     ╚══════╝ ╚═════╝  ╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═══╝
+
+           U N I T E D   I N   S E V E R A N C E
+"""
+
+
+def blank():
+    return [[" "] * GW for _ in range(GH)]
+
+
+def plot(grid, x, y, ch, hard=False):
+    xi, yi = int(round(x)), int(round(y))
+    if 0 <= yi < GH and 0 <= xi < GW:
+        if hard or grid[yi][xi] == " ":
+            grid[yi][xi] = ch
+
+
+def stroke_char(rx, ry, a):
+    sx, sy = -rx * math.sin(a), ry * math.cos(a)
+    ang = math.degrees(math.atan2(sy, sx)) % 180
+    top = math.cos(a) < 0
+    if ang < 22 or ang >= 158:
+        return "-"
+    if ang < 65:
+        return "\\" if top else "/"
+    if ang < 115:
+        return "|"
+    return "/" if top else "\\"
+
+
+def draw_meridian(grid, rx, hard=False):
+    """A meridian ellipse of half-width rx, half-height RY, centred on the globe."""
+    if rx < 1.2:
+        for i in range(3 * GH):
+            plot(grid, CX, CY - RY * math.cos(math.pi * i / (3 * GH - 1)), "|", hard)
+        return
+    steps = max(120, int(16 * (rx + RY)))
+    for i in range(steps):
+        a = 2 * math.pi * i / steps
+        plot(grid, CX + rx * math.cos(a), CY + RY * math.sin(a),
+             stroke_char(rx, RY, a), hard)
+
+
+def draw_limb(grid):
+    """Clean outer oval: flat-ish top/bottom caps, ( ) sides, / \\ shoulders."""
+    steps = 900
+    for i in range(steps):
+        a = 2 * math.pi * i / steps
+        x = CX + RX * math.cos(a)
+        y = CY + RY * math.sin(a)
+        d = a % (2 * math.pi)
+        if d < 0.30 or d > 2 * math.pi - 0.30:
+            ch = ")"
+        elif abs(d - math.pi) < 0.30:
+            ch = "("
+        else:
+            ch = stroke_char(RX, RY, a)
+        plot(grid, x, y, ch, hard=True)
+
+
+def frame(rot):
+    g = blank()
+    for lon in MERIDIAN_LONS:
+        draw_meridian(g, abs(math.cos(lon + rot)) * RX)
+    for lat in PARALLELS:
+        y = CY - math.sin(lat) * RY
+        half = int(math.cos(lat) * (RX - 1.0))
+        for dx in range(-half, half + 1):
+            plot(g, CX + dx, y, "-", hard=True)
+    draw_limb(g)
+    return "\n".join("".join(row).rstrip() for row in g)
+
+
+def main():
+    caption = LUMON.strip("\n")
+
+    if not sys.stdout.isatty():
+        sys.stdout.write(COLOR + frame(0.0) + "\n\n" + caption + RESET + "\n")
+        return
+
+    sys.stdout.write("\033[?25l\033[2J\033[H")
+    try:
+        turns = 34
+        total_spin = 3.0 * math.pi          # how far it rotates before resting
+        for i in range(turns):
+            p = i / (turns - 1)
+            eased = (1 - (1 - p) ** 3)       # ease-out cubic
+            rot = total_spin * (1 - eased)   # winds down to 0
+            if i:
+                sys.stdout.write("\033[%dA" % GH)
+            sys.stdout.write(COLOR + frame(rot) + RESET + "\n")
+            sys.stdout.flush()
+            time.sleep(0.035 + 0.05 * p)
+        sys.stdout.write("\n" + COLOR + caption + RESET + "\n")
+    finally:
+        sys.stdout.write("\033[?25h")
+        sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stdout.write("\033[?25h\n")

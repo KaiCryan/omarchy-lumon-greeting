@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# Lumon terminal greeting -- a Severance-themed intro animation, then the briefing.
+#
+# Usage:
+#   lumon-greeting              play the greeting (this is what ~/.bashrc calls)
+#   lumon-greeting --list       list the available animations
+#   lumon-greeting <name>       play one animation now (no briefing)
+#   lumon-greeting --preview    play every animation back to back
+#   lumon-greeting --help       show this help
+#
+# Configure it in:  ~/.config/omarchy/branding/lumon-greeting.conf
+# Disable it entirely: set LUMON_GREETING_ENABLED=0 there, or remove the
+# "Lumon greeting" block from ~/.bashrc.
+
+set -u
+
+BRAND="$HOME/.config/omarchy/branding"
+ANIMDIR="$BRAND/lumon-anims"
+CONF="$BRAND/lumon-greeting.conf"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/lumon"
+mkdir -p "$STATE" 2>/dev/null || true
+
+# ---- defaults (overridden by the .conf) ---------------------------------
+LUMON_GREETING_ENABLED=1
+LUMON_ANIM="random"
+LUMON_ANIM_SPEED="1.0"
+LUMON_ANIM_MAXTIME="12"
+LUMON_ANIM_FASTFETCH=1
+LUMON_ANIM_COLOR="158;204;228"
+LUMON_ANIM_DIM="74;107;128"
+LUMON_ANIM_HOT="242;252;255"
+LUMON_ANIM_NAME=""
+
+# shellcheck source=/dev/null
+[[ -r "$CONF" ]] && source "$CONF"
+
+list_anims() {
+  find "$ANIMDIR" -maxdepth 1 -type f -perm -u+x \
+    -not -name '_*' -printf '%f\n' 2>/dev/null | sort
+}
+
+pick_anim() {
+  local mode="$1"
+  local -a all
+  mapfile -t all < <(list_anims)
+  ((${#all[@]})) || return 0
+
+  case "$mode" in
+    random)
+      printf '%s\n' "${all[RANDOM % ${#all[@]}]}" ;;
+    sequence)
+      local idx=0 f="$STATE/last-index"
+      [[ -r "$f" ]] && idx=$(<"$f") 2>/dev/null
+      [[ "$idx" =~ ^[0-9]+$ ]] || idx=0
+      idx=$(( (idx + 1) % ${#all[@]} ))
+      printf '%s\n' "$idx" > "$f"
+      printf '%s\n' "${all[idx]}" ;;
+    daily)
+      printf '%s\n' "${all[10#$(date +%j) % ${#all[@]}]}" ;;
+    *)
+      local -a want
+      IFS=', ' read -r -a want <<< "$mode"
+      if ((${#want[@]} <= 1)); then
+        printf '%s\n' "${want[0]:-$mode}"
+      else
+        printf '%s\n' "${want[RANDOM % ${#want[@]}]}"
+      fi ;;
+  esac
+}
+
+run_anim() {
+  local name="$1"
+  local script="$ANIMDIR/$name"
+  if [[ ! -x "$script" ]]; then
+    echo "lumon-greeting: no such animation: $name" >&2
+    echo "available: $(list_anims | paste -sd' ')" >&2
+    return 1
+  fi
+  command -v python3 >/dev/null 2>&1 || return 1
+
+  export LUMON_COLOR="$LUMON_ANIM_COLOR" LUMON_DIM="$LUMON_ANIM_DIM" \
+         LUMON_HOT="$LUMON_ANIM_HOT" LUMON_SPEED="$LUMON_ANIM_SPEED" \
+         LUMON_NAME="${LUMON_ANIM_NAME:-$USER}"
+
+  tput civis 2>/dev/null || true
+  clear
+  timeout -k 1 "$LUMON_ANIM_MAXTIME" python3 "$script"
+  local rc=$?
+  tput cnorm 2>/dev/null || true
+  printf '\n'
+  return $rc
+}
+
+case "${1:-}" in
+  --list|-l)
+    list_anims
+    exit 0 ;;
+  --preview|-p)
+    for a in $(list_anims); do
+      printf '\n\033[2m— %s —\033[0m\n' "$a"
+      sleep 0.5
+      run_anim "$a"
+    done
+    exit 0 ;;
+  --help|-h)
+    awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"
+    exit 0 ;;
+  "") : ;;                       # fall through to the greeting
+  *) run_anim "$1"; exit $? ;;
+esac
+
+# ---- greeting path (invoked by ~/.bashrc) ------------------------------
+[[ "$LUMON_GREETING_ENABLED" == 1 ]] || exit 0
+[[ -t 1 && -t 0 ]] || exit 0
+
+anim="$(pick_anim "$LUMON_ANIM")"
+[[ -n "$anim" ]] && run_anim "$anim"
+
+if [[ "$LUMON_ANIM_FASTFETCH" == 1 ]] && command -v fastfetch >/dev/null 2>&1; then
+  fastfetch --logo none
+fi

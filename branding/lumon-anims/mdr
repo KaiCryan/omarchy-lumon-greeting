@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Macrodata Refinement: a field of numbers; the frightening clusters tremble,
+get boxed by the reticle, and drop into the tempers. The file fills to 100%."""
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, bar, center, fg, nap, paint, run, term_size, write,
+)
+
+FILE_NAME = "COLD HARBOR"
+TEMPERS = ["WOE", "FROLIC", "DREAD", "MALICE"]
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        rows = ["".join(random.choice("0123456789   ") for _ in range(min(cols, 72)))
+                for _ in range(5)]
+        write(fg(DIM) + "\n".join(rows) + RESET + "\n\n"
+              + paint(f"  {FILE_NAME}  ", HOT) + paint("▕" + bar(1, 24) + "▏ 100%", COLOR)
+              + "\n")
+        return
+
+    rnd = random.Random()
+    w = max(24, min(cols - 4, 92))
+    gh = max(6, min(lines - 6, 20))
+    digits = [[rnd.randrange(10) for _ in range(w)] for _ in range(gh)]
+    hot = [[0.0] * w for _ in range(gh)]
+    tempers = [0.0, 0.0, 0.0, 0.0]
+    progress = 0.0
+
+    order = [(y, x) for y in range(gh) for x in range(w)]
+    rnd.shuffle(order)
+    shown = set()
+
+    def render(reticle=None, done=False):
+        lines = []
+        for y in range(gh):
+            cells = []
+            left = right = -1
+            if reticle:
+                cx, cy, cw, ch = reticle
+                if cy <= y < cy + ch:
+                    left, right = max(0, cx - 1), min(w - 1, cx + cw)
+            for x in range(w):
+                if x in (left, right):
+                    cells.append(paint("│", HOT))
+                    continue
+                d = digits[y][x]
+                if d < 0 or (y, x) not in shown:
+                    cells.append(" ")
+                    continue
+                h = hot[y][x]
+                rgb = HOT if h > 0.55 else COLOR if h > 0.05 else DIM
+                cells.append(fg(rgb) + str(d) + RESET)
+            lines.append("".join(cells))
+        lines.append("")
+        bw = max(20, min(w - 22, 46))
+        if done:
+            lines.append(paint(f"  {FILE_NAME}", HOT)
+                         + paint("   REFINEMENT COMPLETE   ", COLOR)
+                         + paint("PRAISE KIER", HOT))
+        else:
+            lines.append(paint(f"  {FILE_NAME}  ", COLOR)
+                         + fg(DIM) + "▕" + fg(COLOR) + bar(progress, bw)
+                         + fg(DIM) + "▏ " + fg(HOT) + f"{progress * 100:3.0f}%" + RESET)
+        seg = [fg(DIM) + n[:2] + " " + fg(COLOR) + bar(t, 6) + RESET
+               for n, t in zip(TEMPERS, tempers)]
+        lines.append("  " + "   ".join(seg))
+        write("\033[H" + "".join(ln + "\033[K\r\n" for ln in lines) + "\033[J")
+
+    write("\033[2J\033[H")
+
+    # reveal
+    for f in range(14):
+        for cell in order[len(shown):int(len(order) * (f + 1) / 14)]:
+            shown.add(cell)
+        render()
+        nap(0.04)
+
+    # refine waves
+    for _ in range(5):
+        cw, ch = rnd.randint(7, 12), rnd.randint(3, 5)
+        cx = rnd.randint(0, max(0, w - cw))
+        cy = rnd.randint(0, max(0, gh - ch))
+        box = (cx, cy, cw, ch)
+        for _ in range(5):
+            for yy in range(cy, cy + ch):
+                for xx in range(cx, cx + cw):
+                    hot[yy][xx] = min(1.0, hot[yy][xx] + 0.16)
+            render(box)
+            nap(0.05)
+        for step in range(7):
+            for yy in range(cy, cy + ch):
+                for xx in range(cx, cx + cw):
+                    if rnd.random() < 0.5:
+                        digits[yy][xx] = rnd.randrange(10)
+                    hot[yy][xx] = 1.0 if step % 2 else 0.7
+            render(box)
+            nap(0.045)
+        cells = [(yy, xx) for yy in range(cy, cy + ch)
+                 for xx in range(cx, cx + cw) if digits[yy][xx] >= 0]
+        rnd.shuffle(cells)
+        picked = rnd.randrange(4)
+        chunk = max(1, len(cells) // 6)
+        for i in range(0, len(cells), chunk):
+            for (yy, xx) in cells[i:i + chunk]:
+                digits[yy][xx] = -1
+                hot[yy][xx] = 0.0
+            progress = min(1.0, progress + chunk / (w * gh * 0.5))
+            tempers[picked] = min(1.0, tempers[picked] + 0.14)
+            render()
+            nap(0.04)
+
+    while progress < 1.0:
+        progress = min(1.0, progress + 0.05)
+        render()
+        nap(0.03)
+    render(done=True)
+    nap(1.2)
+
+    # settle into flowing text so the briefing below starts clean
+    write("\033[2J\033[H\n")
+    card = [
+        paint(center("MACRODATA REFINEMENT", cols), HOT, bold=True),
+        "",
+        paint(center(f"{FILE_NAME}   " + bar(1, min(w - 20, 40)) + "   100%", cols), COLOR),
+        "",
+        paint(center("FILE COMPLETE  ·  PRAISE KIER", cols), DIM),
+    ]
+    write("\n".join(card) + "\n")
+    nap(0.6)
+
+
+run(main)

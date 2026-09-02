@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""Ambient macrodata: the number field, breathing. Columns drift at their own
+pace; a slow shimmer moves through, and now and then a cluster flares."""
+import math
+import os
+import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, nap, paint, run, term_size, write,
+)
+
+
+def main():
+    cols, lines = term_size()
+    rnd = random.Random()
+    if not TTY:
+        for _ in range(6):
+            write(fg(DIM) + "".join(rnd.choice("0123456789 ")
+                                    for _ in range(min(cols - 1, 72))) + RESET + "\n")
+        return
+
+    w, h = cols - 1, lines - 1
+    data = [[rnd.randrange(10) for _ in range(h)] for _ in range(w)]
+    offs = [0.0] * w
+    speed = [rnd.uniform(0.04, 0.30) for _ in range(w)]
+    flare = {}
+
+    write("\033[2J\033[?25l")
+    for f in range(110):
+        for x in range(w):
+            offs_prev = offs[x]
+            offs[x] += speed[x]
+            if int(offs[x]) > int(offs_prev):
+                data[x].insert(0, rnd.randrange(10))
+                data[x].pop()
+        if rnd.random() < 0.30:
+            fx = rnd.randrange(max(1, w - 5))
+            fy = rnd.randrange(max(1, h - 3))
+            for dx in range(rnd.randint(2, 5)):
+                for dy in range(rnd.randint(1, 3)):
+                    flare[(fx + dx, fy + dy)] = rnd.randint(4, 9)
+
+        out = ["\033[H"]
+        for y in range(h):
+            row = []
+            for x in range(w):
+                d = data[x][y]
+                key = (x, y)
+                if key in flare:
+                    row.append(fg(HOT) + str(d) + RESET)
+                    flare[key] -= 1
+                    if flare[key] <= 0:
+                        del flare[key]
+                else:
+                    wave = math.sin(x * 0.12 + y * 0.09 + f * 0.10)
+                    row.append(fg(COLOR if wave > 0.55 else DIM) + str(d) + RESET)
+            out.append("".join(row) + "\033[K\r\n")
+        out.append("\033[J")
+        write("".join(out))
+        nap(0.05)
+
+    write("\033[2J\033[H\n\n")
+    write(center(paint("M A C R O D A T A", DIM), cols) + "\n")
+    nap(0.5)
+
+
+run(main)

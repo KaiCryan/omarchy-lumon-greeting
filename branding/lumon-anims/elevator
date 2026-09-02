@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""The descent to the severed floor: a fluorescent bar sweeps down the shaft
+past each sublevel, the light stutters, and you arrive as your innie."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, NAME, RESET, TTY, center, fg, nap, paint, run, term_size, write,
+)
+
+FLOORS = ["LOBBY", "SUBLEVEL 1", "SUBLEVEL 2", "SUBLEVEL 3", "SEVERED FLOOR"]
+
+
+def main():
+    cols, lines = term_size()
+    if not TTY:
+        write(paint("▼  DESCENDING TO THE SEVERED FLOOR  ▼", HOT) + "\n")
+        write(paint(f"   welcome back, {NAME}.", DIM) + "\n")
+        return
+
+    h = max(10, min(lines - 2, 24))
+    railL, railR = 3, cols - 4
+    inner = railR - railL - 1
+
+    def screen(scan_y, label, bright):
+        rows = []
+        for y in range(h):
+            if y == scan_y:
+                rows.append(" " * railL + fg(HOT) + "█" * (inner + 2) + RESET)
+                continue
+            row = " " * railL + fg(DIM) + "│" + " " * inner + "│" + RESET
+            if y == h // 2:
+                rgb = HOT if abs(scan_y - y) <= 2 else bright
+                row = " " * railL + fg(DIM) + "│" + RESET \
+                    + center(fg(rgb) + label + RESET, inner, len(label)) \
+                    + fg(DIM) + "│" + RESET
+            rows.append(row)
+        write("\033[H" + "".join(r + "\033[K\r\n" for r in rows) + "\033[J")
+
+    write("\033[2J\033[H")
+    for fi, floor in enumerate(FLOORS):
+        last = fi == len(FLOORS) - 1
+        for y in range(-1, h + 1):
+            screen(y, floor, COLOR if not last else DIM)
+            nap(0.012 if not last else 0.02)
+        if last:
+            for _ in range(3):
+                screen(-5, floor, DIM)
+                nap(0.05)
+                screen(h // 2, floor, HOT)
+                nap(0.05)
+
+    write("\033[2J\033[H\n\n")
+    msg = "You are now on the severed floor."
+    for i in range(len(msg) + 1):
+        write("\r" + center(fg(COLOR) + msg[:i] + RESET, cols) + "\033[K")
+        nap(0.03)
+    write("\n\n")
+    nap(0.4)
+    write(center(paint(f"WELCOME BACK, {NAME.upper()}", HOT, bold=True), cols) + "\n")
+    nap(1.1)
+
+
+run(main)

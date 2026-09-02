@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""The LUMON wordmark resolves, the nine core principles are enumerated, and the
+screen settles on PRAISE KIER."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _lumon import (  # noqa: E402
+    COLOR, DIM, HOT, RESET, TTY, center, fg, load_art, nap, paint, run, term_size, write,
+)
+
+PRINCIPLES = [
+    "Vision", "Verve", "Wit", "Cheer", "Humility",
+    "Benevolence", "Nimbleness", "Probity", "Wiles",
+]
+
+FALLBACK = [
+    "  ██╗     ██╗   ██╗ ███╗   ███╗  ██████╗  ███╗   ██╗",
+    "  ██║     ██║   ██║ ████╗ ████║ ██╔═══██╗ ████╗  ██║",
+    "  ██║     ██║   ██║ ██╔████╔██║ ██║   ██║ ██╔██╗ ██║",
+    "  ██║     ██║   ██║ ██║╚██╔╝██║ ██║   ██║ ██║╚██╗██║",
+    "  ███████╗╚██████╔╝ ██║ ╚═╝ ██║ ╚██████╔╝ ██║ ╚████║",
+    "  ╚══════╝ ╚═════╝  ╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═══╝",
+]
+
+
+def main():
+    cols, lines = term_size()
+    art = load_art("lumon-wordmark-ascii.txt") or FALLBACK
+    if art and max(len(x) for x in art) > cols - 2:
+        art = FALLBACK
+    artw = max(len(x) for x in art)
+
+    if not TTY:
+        write(fg(HOT) + "\n".join(art) + RESET + "\n\n")
+        write("  " + " · ".join(PRINCIPLES) + "\n\n" + paint("  PRAISE KIER", HOT) + "\n")
+        return
+
+    write("\033[2J\033[H\n")
+    for i, row in enumerate(art):
+        rgb = HOT if i < 3 else COLOR
+        write(center(fg(rgb) + row + RESET, cols, len(row)) + "\n")
+        nap(0.09)
+    nap(0.3)
+    write("\n" + center(paint("— THE NINE CORE PRINCIPLES —", DIM), cols) + "\n\n")
+    nap(0.35)
+
+    cols2 = 3
+    rows = (len(PRINCIPLES) + cols2 - 1) // cols2
+    cellw = 16
+    for r in range(rows):
+        line = ""
+        for c in range(cols2):
+            idx = c * rows + r
+            if idx < len(PRINCIPLES):
+                line += f"{idx + 1}. {PRINCIPLES[idx]}".ljust(cellw)
+        write(center(fg(COLOR) + line.rstrip() + RESET, cols, len(line.rstrip())) + "\n")
+        nap(0.16)
+
+    nap(0.4)
+    for pulse in (HOT, COLOR, HOT):
+        write("\r" + center(paint("P R A I S E   K I E R", pulse, bold=True), cols) + "\033[K")
+        nap(0.22)
+    write("\n")
+    nap(1.0)
+
+
+run(main)
