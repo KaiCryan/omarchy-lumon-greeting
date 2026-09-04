@@ -26,6 +26,16 @@
 </details>
 <!-- lumon-set:end -->
 
+<!-- lumon-media:start -->
+<div align="center">
+
+<video src="https://github.com/KaiCryan/omarchy-lumon-greeting/raw/main/docs/greeting.mp4" poster="https://github.com/KaiCryan/omarchy-lumon-greeting/raw/main/docs/greeting-poster.jpg" controls muted playsinline width="720"></video>
+
+<sub>A fresh terminal: the personnel-badge animation, then the <code>fastfetch</code> briefing.</sub>
+
+</div>
+<!-- lumon-media:end -->
+
 A *Severance* / Lumon Industries greeting for [Omarchy](https://omarchy.org)
 terminals. The first terminal you open after logging in plays a short
 themed animation, then hands off to the usual `fastfetch` system briefing.
