@@ -1,5 +1,7 @@
 # omarchy-lumon-greeting
 
+> Part of **[Omarchy · Lumon Industries](https://github.com/KaiCryan/omarchy-lumon)** — a whole-system _Severance_ theme for Omarchy. This repo is one piece; the hub links the rest.
+
 A *Severance* / Lumon Industries greeting for [Omarchy](https://omarchy.org)
 terminals. The first terminal you open after logging in plays a short
 themed animation, then hands off to the usual `fastfetch` system briefing.
