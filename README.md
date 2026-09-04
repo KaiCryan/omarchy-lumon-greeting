@@ -29,9 +29,9 @@
 <!-- lumon-media:start -->
 <div align="center">
 
-<video src="https://github.com/KaiCryan/omarchy-lumon-greeting/raw/main/docs/greeting.mp4" poster="https://github.com/KaiCryan/omarchy-lumon-greeting/raw/main/docs/greeting-poster.jpg" controls muted playsinline width="720"></video>
+![A fresh terminal drawing a personnel-badge animation, then the fastfetch briefing](https://github.com/KaiCryan/omarchy-lumon-greeting/raw/main/docs/greeting.gif)
 
-<sub>A fresh terminal: the personnel-badge animation, then the <code>fastfetch</code> briefing.</sub>
+<sub>A fresh terminal: the personnel-badge animation, then the <code>fastfetch</code> briefing. <a href="https://github.com/KaiCryan/omarchy-lumon-greeting/raw/main/docs/greeting.mp4">Full clip (mp4)</a>.</sub>
 
 </div>
 <!-- lumon-media:end -->
