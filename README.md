@@ -1,4 +1,10 @@
 # omarchy-lumon-greeting
+<!-- lumon-voice:head -->
+```
+░▒▓█  L U M O N   I N D U S T R I E S  █▓▒░
+```
+> *Welcome back to the severed floor. Your terminal has missed you, in its way.*
+<!-- /lumon-voice:head -->
 
 <!-- lumon-set:start -->
 > **Part of [Omarchy · Lumon Industries](https://github.com/KaiCryan/omarchy-lumon)** — a whole-system *Severance* theme for Omarchy.
@@ -84,3 +90,14 @@ in place; delete it by hand if you want.
   and prints the final screen as plain text — a no-GUI layout check.
 - The character portraits in `badge` are ASCII line-art; the wallpaper set that
   shares the pipeline is [omarchy-lumon-wallpapers](https://github.com/KaiCryan/omarchy-lumon-wallpapers).
+
+---
+
+<div align="center"><sub>
+
+*The work is mysterious and important.*
+
+Part of [Omarchy · Lumon Industries](https://github.com/KaiCryan/omarchy-lumon) · a personal, non-commercial *Severance* tribute · not affiliated with Apple TV+
+
+</sub></div>
+<!-- lumon-voice:footer -->
